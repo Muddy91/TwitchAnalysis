@@ -1,3 +1,4 @@
 *.txt
 *.pyc
 data/
+startupscript.sh
