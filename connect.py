@@ -2,7 +2,10 @@ import sys
 import socket
 import string
 import datetime
+import sys
 class IRCClient:
+	output_path = sys.argv[1]
+	print output_path
 	socket = None
 	nickname = "Brohunt"
 	connected = False
@@ -11,8 +14,8 @@ class IRCClient:
 		PORT=6667
 		NICK="Brohunt"
 		PASS="oauth:mzcxmidfng6xzaig70f6cplz80gujw"
-		file_raw = "raw_output.txt"
-		file_filtered = "filtered_output.txt"
+		file_raw = self.output_path + "raw_output.txt"
+		file_filtered = self.output_path + "filtered_output.txt"
 		file_raw = open(file_raw, 'a')
 		file_filtered = open(file_filtered, 'a')
 
