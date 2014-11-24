@@ -1,6 +1,7 @@
 import sys
 import socket
 import string
+import datetime
 class IRCClient:
 	socket = None
 	nickname = "Brohunt"
@@ -22,20 +23,24 @@ class IRCClient:
 		self.send("NICK %s" % NICK)
 		self.send("JOIN #froggen")
 		self.send("JOIN #tsm_theoddone")
+		#self.send("JOIN #")
 
 		while True:
 			buf = self.socket.recv(4096)
 			lines = buf.split("\n")
+			timestamp = datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
 			for data in lines:
 				data = str(data).strip()
 				if data == '':
 					continue
-				file_raw.write(data + "\n")
+				file_raw.write(timestamp + data + "\n")
 				parsed = self.parse_data(data)
 				if parsed != None:
+					file_filtered.write(timestamp + "\n")
 					file_filtered.write(parsed['nick'] + "\n")
 					file_filtered.write(parsed['chan'] + "\n")
 					file_filtered.write(parsed['msg'] + "\n")
+					file_filtered.write("\n")
 
 
 				# server ping/pong?
@@ -97,7 +102,11 @@ class IRCClient:
 
 		# Did we mess up? Return empty tuple.
 		# This does not hold right now, since we add different indexes with each other.
-		if data.find('brohunt') != -1:
+		# PRIVMSG is to check that we actually parse a message.
+		# brohunt is to check
+		if data.find('PRIVMSG') == -1:
+			return None
+		if data.find('jtv') != -1:
 			return None
 		if exclam_index == -1 or hashtag_index == -1 or msg_colon_index == -1:
 			return fail_tuple
