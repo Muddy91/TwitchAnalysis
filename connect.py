@@ -120,40 +120,5 @@ class ChanConn(threading.Thread):
                     }
             return  json_dict
 
-"""
-	# Split the data, right now we just care about NICKNAME CHANNEL and MESSAGE
-	# This is a simple static parser, just enough for first tries.
-	def parse_data(self, data):
-		# If sh*t hits the fan, we will just return an empty tuple.
-		# Not a nice design choice... but "for now, bro"
-		#fail_tuple = {'nick' : "", 'chan' : "", 'msg' : ""}
-		fail_tuple = None
-		exclam_index = data.find('!')
-
-		# starts at index 1 since every message starts wit ':' which is not part of nickname
-		nickname = data[1:exclam_index]
-		hashtag_index = data.find('#')
-
-		chan_end_index = hashtag_index + data[hashtag_index:].find(':')
-		chan = data[hashtag_index:chan_end_index]
-
-		msg_colon_index = chan_end_index + data[chan_end_index:].find(':')
-		msg = data[msg_colon_index+1:]
-		#msg = data[msg_colon_index+1:]
-
-		# Did we mess up? Return empty tuple.
-		# This does not hold right now, since we add different indexes with each other.
-		# PRIVMSG is to check that we actually parse a message.
-		# brohunt is to check
-		if data.find('PRIVMSG') == -1:
-			return None
-		if data.find('jtv') != -1:
-			return None
-		if exclam_index == -1 or hashtag_index == -1 or msg_colon_index == -1:
-			return fail_tuple
-		else:
-			return {'nick' : nickname, 'chan' : chan, 'msg' : msg}
-"""
-
-# Start  calls
+# Example start  call
 #ircc = ConnChan("#cdnthe3rd")
