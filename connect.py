@@ -3,32 +3,49 @@ import socket
 import string
 import datetime
 import sys
-class IRCClient:
-	output_path = sys.argv[1]
-	print output_path
-	socket = None
-	nickname = "Brohunt"
-	connected = False
-	def __init__(self):
-		HOST="irc.twitch.tv"
-		PORT=6667
-		NICK="Brohunt"
-		PASS="oauth:mzcxmidfng6xzaig70f6cplz80gujw"
-		file_raw = self.output_path + "raw_output.txt"
-		file_filtered = self.output_path + "filtered_output.txt"
-		file_raw = open(file_raw, 'a')
-		file_filtered = open(file_filtered, 'a')
-
-
+import credentials as cred
+import json
+import threading
+import time
+class ChanConn(threading.Thread):
+        NICK = cred.NICK
+        PASS = cred.PASS
+        HOST="irc.twitch.tv"
+        PORT=6667
+	output_path = "/home/brede/Development/TwitchAnalysis/data2/"
+	nickname = "brohunt"
+        # Initialize the connection.
+	def __init__(self, chan):
+                self.connected = False
+                self.socket = None
+                self.file_raw = None
+                self.file_filtered = None
+                self.active = True
+                threading.Thread.__init__(self) # call superclass
+                # Setup files
+		self.file_raw = self.output_path + str(chan) + ".txt"
+		self.file_filtered = self.output_path + str(chan) + "_filtered.txt"
+		self.file_raw = open(self.file_raw, 'a')
+		self.file_filtered = open(self.file_filtered, 'a')
 		self.socket = socket.socket()
-		self.socket.connect((HOST, PORT))
-		self.send("PASS %s" % PASS)
-		self.send("NICK %s" % NICK)
-		self.send("JOIN #froggen")
-		self.send("JOIN #tsm_theoddone")
-		#self.send("JOIN #")
+                self.connect()
+                self.join_chan(chan)
 
-		while True:
+        # Connect to a list of channels
+        def join_chan(self, channel):
+                channel = "#" + channel
+                self.send("JOIN %s" % channel)
+
+        # Connect to irc server
+        def connect(self):
+		self.socket.connect((self.HOST, self.PORT))
+		self.send("PASS %s" % self.PASS)
+		self.send("NICK %s" % self.NICK)
+
+        # Run the script and listen to the joined channels
+        def run(self):
+		while self.active:
+                        # Read message from connected channels
 			buf = self.socket.recv(4096)
 			lines = buf.split("\n")
 			timestamp = datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
@@ -36,15 +53,10 @@ class IRCClient:
 				data = str(data).strip()
 				if data == '':
 					continue
-				file_raw.write(timestamp + data + "\n")
-				parsed = self.parse_data(data)
+				self.file_raw.write(timestamp + data + "\n")
+				parsed = self.parse_json(data, timestamp)
 				if parsed != None:
-					file_filtered.write(timestamp + "\n")
-					file_filtered.write(parsed['nick'] + "\n")
-					file_filtered.write(parsed['chan'] + "\n")
-					file_filtered.write(parsed['msg'] + "\n")
-					file_filtered.write("\n")
-
+                                        self.file_filtered.write(json.dumps(parsed) + "\n")
 
 				# server ping/pong?
 				if data.find('PING') != -1:
@@ -68,21 +80,47 @@ class IRCClient:
 				if ctx['target'] == self.nickname:
 					target = ctx['sender'].split("!")[0]
 
-	def send(self, msg):
-		print "I>", msg
-		self.socket.send(msg+"\r\n")
+        # This will make the next while-loop to break and the thread to terminate
+        def stop(self):
+            self.active = False
 
-	#def say(self, msg, to):
-		#self.send("PRIVMSG %s :%s" % (to, msg))
+        # Send a message through the socket
+	def send(self, msg):
+		self.socket.send(msg+"\r\n")
 
 	def perform(self):
 		self.send("PRIVMSG R : Login <>")
 		self.send("MODE %s +x" % self.nickname)
-		#for c in self.channels:
-		#	self.send("/j %s", c)
-		#	print "Tried to joing %s", c
-			#self.send("JOIN %s", c)
 
+        # Convert the read data into a json object
+        def parse_json(self, data, time):
+
+            if data.find('PRIVMSG') == -1:
+                return None
+            if data.find('jtv') != -1:
+                return None
+
+            exclam_index = data.find('!')
+            # starts at 1 since every message starts with ':' which is not part of nickname
+            nickname = data[1:exclam_index]
+            hashtag_index = data.find('#')
+            chan_end_index = hashtag_index + data[hashtag_index:].find(':')
+            chan = data[hashtag_index:chan_end_index]
+
+            msg_start_index = chan_end_index + data[chan_end_index:].find(':')
+            msg = data[msg_start_index+1:]
+
+            if exclam_index == -1 or hashtag_index == -1 or msg_start_index == -1:
+                return None
+
+            json_dict = {'nick': nickname,
+                    'chan': chan,
+                    'msg': msg,
+                    'time': time
+                    }
+            return  json_dict
+
+"""
 	# Split the data, right now we just care about NICKNAME CHANNEL and MESSAGE
 	# This is a simple static parser, just enough for first tries.
 	def parse_data(self, data):
@@ -115,6 +153,7 @@ class IRCClient:
 			return fail_tuple
 		else:
 			return {'nick' : nickname, 'chan' : chan, 'msg' : msg}
+"""
 
-
-IRCClient()
+# Start  calls
+#ircc = ConnChan("#cdnthe3rd")
