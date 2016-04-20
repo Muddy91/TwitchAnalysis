@@ -3,6 +3,7 @@ import socket
 import string
 import datetime
 import sys
+import os
 import credentials as cred
 import json
 import threading
@@ -20,7 +21,7 @@ class ChanConn(threading.Thread):
         PASS = cred.PASS
         HOST="irc.twitch.tv"
         PORT=6667
-	output_path = "/home/brede/Development/TwitchAnalysis/data2/"
+	output_path = os.path.join(os.getcwd(), "/data")
 	nickname = "brohunt"
 
         # Initialize the connection.
@@ -126,8 +127,8 @@ class ChanConn(threading.Thread):
             msg_start_index = chan_end_index + data[chan_end_index:].find(':')
             msg = data[msg_start_index+1:]
 
-            if exclam_index == -1
-            or hashtag_index == -1
+            if exclam_index == -1 \
+            or hashtag_index == -1 \
             or msg_start_index == -1:
                 return None
 
