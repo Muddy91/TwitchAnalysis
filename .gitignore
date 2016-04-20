@@ -1,4 +1,5 @@
 *.txt
 *.pyc
+credentials.py
 data/
 startupscript.sh

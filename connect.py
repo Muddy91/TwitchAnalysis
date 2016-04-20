@@ -7,22 +7,34 @@ import credentials as cred
 import json
 import threading
 import time
+import S3_handle as S3
+"""
+    Script for handling a channels
+    Given a list of channels this script spawns a new thread
+    that handles the messaging connected to these channels
+"""
 class ChanConn(threading.Thread):
+
+        # Variable definitions
         NICK = cred.NICK
         PASS = cred.PASS
         HOST="irc.twitch.tv"
         PORT=6667
 	output_path = "/home/brede/Development/TwitchAnalysis/data2/"
 	nickname = "brohunt"
+
         # Initialize the connection.
 	def __init__(self, chan):
+                threading.Thread.__init__(self) # call superclass
+
+                # Set default values
                 self.connected = False
                 self.socket = None
                 self.file_raw = None
                 self.file_filtered = None
                 self.active = True
-                threading.Thread.__init__(self) # call superclass
-                # Setup files
+
+                # Setup output files
 		self.file_raw = self.output_path + str(chan) + ".txt"
 		self.file_filtered = self.output_path + str(chan) + "_filtered.txt"
 		self.file_raw = open(self.file_raw, 'a')
@@ -31,18 +43,19 @@ class ChanConn(threading.Thread):
                 self.connect()
                 self.join_chan(chan)
 
-        # Connect to a list of channels
-        def join_chan(self, channel):
-                channel = "#" + channel
-                self.send("JOIN %s" % channel)
-
         # Connect to irc server
         def connect(self):
 		self.socket.connect((self.HOST, self.PORT))
 		self.send("PASS %s" % self.PASS)
 		self.send("NICK %s" % self.NICK)
 
-        # Run the script and listen to the joined channels
+        # Connect to a given channel
+        def join_chan(self, channel):
+                channel = "#" + channel
+                self.send("JOIN %s" % channel)
+
+
+        # Run thread and listen to the joined channel
         def run(self):
 		while self.active:
                         # Read message from connected channels
@@ -79,10 +92,12 @@ class ChanConn(threading.Thread):
 				target = ctx['target']
 				if ctx['target'] == self.nickname:
 					target = ctx['sender'].split("!")[0]
+            self.handle_exit()
 
         # This will make the next while-loop to break and the thread to terminate
         def stop(self):
             self.active = False
+            S3.upload_file(self.file_filtered)
 
         # Send a message through the socket
 	def send(self, msg):
@@ -101,7 +116,9 @@ class ChanConn(threading.Thread):
                 return None
 
             exclam_index = data.find('!')
-            # starts at 1 since every message starts with ':' which is not part of nickname
+
+            # nickname starts at 1 since every message starts with ':'
+            # which is not part of nickname
             nickname = data[1:exclam_index]
             hashtag_index = data.find('#')
             chan_end_index = hashtag_index + data[hashtag_index:].find(':')
@@ -110,7 +127,9 @@ class ChanConn(threading.Thread):
             msg_start_index = chan_end_index + data[chan_end_index:].find(':')
             msg = data[msg_start_index+1:]
 
-            if exclam_index == -1 or hashtag_index == -1 or msg_start_index == -1:
+            if exclam_index == -1
+            or hashtag_index == -1
+            or msg_start_index == -1:
                 return None
 
             json_dict = {'nick': nickname,
@@ -118,7 +137,11 @@ class ChanConn(threading.Thread):
                     'msg': msg,
                     'time': time
                     }
-            return  json_dict
+            return json_dict
+
+        def handle_exit(self):
+            # This is where we are supposed to make calls to S3_handle to
+            # Save away our chat logs
 
 # Example start  call
 #ircc = ConnChan("#cdnthe3rd")
