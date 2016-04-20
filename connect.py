@@ -92,12 +92,11 @@ class ChanConn(threading.Thread):
 				target = ctx['target']
 				if ctx['target'] == self.nickname:
 					target = ctx['sender'].split("!")[0]
-            self.handle_exit()
+                self.handle_exit()
 
         # This will make the next while-loop to break and the thread to terminate
         def stop(self):
             self.active = False
-            S3.upload_file(self.file_filtered)
 
         # Send a message through the socket
 	def send(self, msg):
@@ -142,6 +141,7 @@ class ChanConn(threading.Thread):
         def handle_exit(self):
             # This is where we are supposed to make calls to S3_handle to
             # Save away our chat logs
+            S3.upload_file(self.file_filtered)
 
 # Example start  call
 #ircc = ConnChan("#cdnthe3rd")
