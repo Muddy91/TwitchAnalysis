@@ -3,3 +3,5 @@
 credentials.py
 data/
 startupscript.sh
+log/*
+*~
