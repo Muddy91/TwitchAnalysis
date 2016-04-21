@@ -3,12 +3,15 @@ import socket
 import string
 import datetime
 import sys
-import os
+import codecs
 import credentials as cred
 import json
 import threading
 import time
 import S3_handle as S3
+import logging
+reload(sys)
+sys.setdefaultencoding('utf8') # this is needed for the write to work with utf8
 """
     Script for handling a channels
     Given a list of channels this script spawns a new thread
@@ -21,9 +24,9 @@ class ChanConn(threading.Thread):
         PASS = cred.T_PASS
         HOST="irc.twitch.tv"
         PORT=6667
-	output_path = os.path.join(os.getcwd(), "/data")
+        output_path = "data/"
 	nickname = "brohunt"
-
+        logger = logging.getLogger('main_log')
         # Initialize the connection.
 	def __init__(self, chan):
                 threading.Thread.__init__(self) # call superclass
@@ -36,19 +39,25 @@ class ChanConn(threading.Thread):
                 self.active = True
 
                 # Setup output files
-		self.file_raw = self.output_path + str(chan) + ".txt"
-		self.file_filtered = self.output_path + str(chan) + "_filtered.txt"
-		self.file_raw = open(self.file_raw, 'a')
-		self.file_filtered = open(self.file_filtered, 'a')
+                self.file_path = self.output_path + str(chan)
+		self.file_raw = codecs.open(self.file_path+"_raw", 'w', \
+                        encoding='utf8')
+		self.file_filtered = codecs.open(self.file_path, 'w', \
+                        encoding='utf8')
 		self.socket = socket.socket()
                 self.connect()
                 self.join_chan(chan)
 
         # Connect to irc server
         def connect(self):
+            try:
 		self.socket.connect((self.HOST, self.PORT))
 		self.send("PASS %s" % self.PASS)
 		self.send("NICK %s" % self.NICK)
+            except socket.timeout:
+                self.active = False
+                self.logger.error("Socket timeout for server connect.\
+                        Aborting this thread.")
 
         # Connect to a given channel
         def join_chan(self, channel):
@@ -60,17 +69,36 @@ class ChanConn(threading.Thread):
         def run(self):
 		while self.active:
                         # Read message from connected channels
-			buf = self.socket.recv(4096)
+                        try:
+			    buf = self.socket.recv(4096)
+                        except socket.timeout:
+                            self.logger.error("Got timeout for channel %s when\
+                                    waiting for a message. Shutting down.")
+                            self.stop()
+                            continue # Skip rest of loop so we shutdown nice.
+                        except socket.error:
+                            self.logger.error("Got an error for channel %s when\
+                                    waiting for a message. Shutting down.")
+                            self.stop()
+                            continue # Skip rest of loop so we shut down nice.
+
 			lines = buf.split("\n")
 			timestamp = datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
 			for data in lines:
 				data = str(data).strip()
 				if data == '':
 					continue
-				self.file_raw.write(timestamp + data + "\n")
+                                msg = timestamp + data + "\n"
+				self.file_raw.write(msg)
 				parsed = self.parse_json(data, timestamp)
 				if parsed != None:
+                                    try:
                                         self.file_filtered.write(json.dumps(parsed) + "\n")
+                                    except UnicodeDecodeError:
+                                        logging.error("Could not write [ %s ] to file." % parsed)
+                                        self.stop()
+                                        break # To skip the consequtive code
+
 
 				# server ping/pong?
 				if data.find('PING') != -1:
@@ -142,7 +170,11 @@ class ChanConn(threading.Thread):
         def handle_exit(self):
             # This is where we are supposed to make calls to S3_handle to
             # Save away our chat logs
-            S3.upload_file(self.file_filtered)
+            self.socket.close()
+            self.file_raw.close()
+            self.file_filtered.close()
+            S3.upload_file(self.file_path)
+
 
 # Example start  call
 #ircc = ConnChan("#cdnthe3rd")
