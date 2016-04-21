@@ -5,8 +5,8 @@
 
 """
 
-from top import TopChans
-from  connect import ChanConn
+from top_chans import TopChans
+from chan_conn import ChanConn
 import time
 import thread
 tc = TopChans()

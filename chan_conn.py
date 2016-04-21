@@ -17,8 +17,8 @@ import S3_handle as S3
 class ChanConn(threading.Thread):
 
         # Variable definitions
-        NICK = cred.NICK
-        PASS = cred.PASS
+        NICK = cred.T_NICK
+        PASS = cred.T_PASS
         HOST="irc.twitch.tv"
         PORT=6667
 	output_path = os.path.join(os.getcwd(), "/data")
