@@ -20,7 +20,7 @@ def upload_file(file_path):
     f = open(file_path, 'rb')
     fr = open(file_path+"_raw", 'rb')
     splits = file_path.split('/')
-    raw_path = "raw/" + splits[1:]
+    raw_path = "raw/" + ''.join(splits[1:])
     _lock.acquire()
     _bucket.put_object(Key=f.name+date_suffix, Body=f)
     _bucket.put_object(Key=raw_path+date_suffix, Body=fr)

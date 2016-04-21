@@ -14,7 +14,7 @@ import logging
 class Main:
     update_delay_minutes = 5 # Time between each channel update
     update_delay_seconds = 60*update_delay_minutes
-    num_channels         = 1 # Numer of channels to parse
+    num_channels         = 30 # Numer of channels to parse
     current_channels     = [] # Channels we currently check
     channel_threads      = {}
     tc = None
