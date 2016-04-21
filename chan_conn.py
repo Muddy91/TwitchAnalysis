@@ -3,6 +3,7 @@ import socket
 import string
 import datetime
 import sys
+import os
 import codecs
 import credentials as cred
 import json
@@ -174,6 +175,8 @@ class ChanConn(threading.Thread):
             self.file_raw.close()
             self.file_filtered.close()
             S3.upload_file(self.file_path)
+            os.remove(self.file_path)
+            os.remove(self.file_path+"_raw")
 
 
 # Example start  call
