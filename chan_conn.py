@@ -29,7 +29,7 @@ class ChanConn(threading.Thread):
   nickname = "brohunt"
   logger = logging.getLogger('main_log')
   # Initialize the connection.
-	def __init__(self, chan):
+  def __init__(self, chan):
     threading.Thread.__init__(self) # call superclass
 
     # Set default values
@@ -38,14 +38,15 @@ class ChanConn(threading.Thread):
     self.file_raw = None
     self.file_filtered = None
     self.active = True
+    self.chan = chan
 
     # Setup output files
     self.file_path = self.output_path + str(chan)
-		self.file_raw = codecs.open(self.file_path+"_raw", 'w', \
+    self.file_raw = codecs.open(self.file_path+"_raw", 'w', \
       encoding='utf8')
-		self.file_filtered = codecs.open(self.file_path, 'w', \
+    self.file_filtered = codecs.open(self.file_path, 'w', \
       encoding='utf8')
-		self.socket = socket.socket()
+    self.socket = socket.socket()
     self.connect()
     self.join_chan(chan)
 
@@ -53,7 +54,7 @@ class ChanConn(threading.Thread):
   def connect(self):
     try:
       self.socket.connect((self.HOST, self.PORT))
-		  self.send("PASS %s" % self.PASS)
+      self.send("PASS %s" % self.PASS)
       self.send("NICK %s" % self.NICK)
     except socket.timeout:
       self.active = False
@@ -68,73 +69,77 @@ class ChanConn(threading.Thread):
 
   # Run thread and listen to the joined channel
   def run(self):
-		while self.active:
+    while self.active:
     # Read message from connected channels
       try:
         buf = self.socket.recv(4096)
       except socket.timeout:
         self.logger.error("Got timeout for channel %s when\
-          waiting for a message. Shutting down.")
+          waiting for a message. Shutting down.", self.chan)
         self.stop()
         continue # Skip rest of loop so we shutdown nice.
       except socket.error:
         self.logger.error("Got an error for channel %s when\
-          waiting for a message. Shutting down.")
+          waiting for a message. Shutting down.", self.chan)
         self.stop()
         continue # Skip rest of loop so we shut down nice.
 
-			lines = buf.split("\n")
-			timestamp = datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
-			for data in lines:
-				data = str(data).strip()
-				if data == '':
-					continue
-        msg = timestamp + data + "\n"
-				self.file_raw.write(msg)
-				parsed = self.parse_json(data, timestamp)
-				if parsed != None:
+      lines = buf.split("\n")
+      timestamp = datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
+      for data in lines:
+        data = str(data).strip()
+        if data == '':
+          continue
+
+        parsed = None
+        try:
+          msg = timestamp + data + "\n"
+          self.file_raw.write(msg)
+          parsed = self.parse_json(data, timestamp)
+        except UnicodeDecodeError:
+            logging.error("Could not write raw message: [ %s ], to file.", msg)
+        if parsed != None:
           try:
             self.file_filtered.write(json.dumps(parsed) + "\n")
-            except UnicodeDecodeError:
-              logging.error("Could not write [ %s ] to file." % parsed)
-              self.stop()
-              break # To skip the consequtive code
+          except UnicodeDecodeError:
+            logging.error("Could not write parsed [ %s ] to file.", parsed)
+            self.stop()
+            break # To skip the consequtive code
 
+        # server ping/pong?
+        if data.find('PING') != -1:
+          n = data.split(':')[1]
+          self.send('PONG :' + n)
+          if self.connected == False:
+            self.perform()
+            self.connected = True
 
-  			# server ping/pong?
-  			if data.find('PING') != -1:
-  				n = data.split(':')[1]
-  				self.send('PONG :' + n)
-  				if self.connected == False:
-  					self.perform()
-  					self.connected = True
+        args = data.split(None, 3)
+        if len(args)  != 4:
+          continue
+        ctx = {}
+        ctx['sender'] = args[0][1:]
+        ctx['type'] = args[1]
+        ctx['target'] = args[2]
+        ctx['msg'] = args[3][1:]
 
-				args = data.split(None, 3)
-				if len(args)  != 4:
-					continue
-				ctx = {}
-				ctx['sender'] = args[0][1:]
-				ctx['type'] = args[1]
-				ctx['target'] = args[2]
-				ctx['msg'] = args[3][1:]
-
-				# whom to reply?
-				target = ctx['target']
-				if ctx['target'] == self.nickname:
-					target = ctx['sender'].split("!")[0]
-          self.handle_exit()
+        # whom to reply?
+        target = ctx['target']
+        if ctx['target'] == self.nickname:
+          target = ctx['sender'].split("!")[0]
+    self.handle_exit()
 
   # This will make the next while-loop to break and the thread to terminate
   def stop(self):
-  self.active = False
+    self.active = False
 
   # Send a message through the socket
-	def send(self, msg):
-		self.socket.send(msg+"\r\n")
+  def send(self, msg):
+    self.socket.send(msg+"\r\n")
 
-	def perform(self):
-		self.send("PRIVMSG R : Login <>")
-		self.send("MODE %s +x" % self.nickname)
+  def perform(self):
+    self.send("PRIVMSG R : Login <>")
+    self.send("MODE %s +x" % self.nickname)
 
   # Convert the read data into a json object
   def parse_json(self, data, time):
