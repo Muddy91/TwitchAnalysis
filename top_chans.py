@@ -1,6 +1,6 @@
 import urllib2
 import json
-
+import credentials as creds
 """
  Module to extract information from top channels
 """
@@ -11,7 +11,8 @@ class TopChans:
   # Return current top channels in JSON format, number of channels is num
   def top_channels(self, num):
     curr_url = self.url + "?limit=" + str(num) + "&stream_type=live"
-    req = urllib2.urlopen(curr_url)
+    request = urllib2.Request(curr_url, headers={"Client-ID": creds.T_CLIENTID})
+    req = urllib2.urlopen(request)
     data = req.read()
     res = self.data_to_json(data)
     return res
