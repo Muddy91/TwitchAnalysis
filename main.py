@@ -8,6 +8,7 @@
 from top_chans import TopChans
 from chan_conn import ChanConn
 import time
+import sys
 import thread
 import logging
 
@@ -21,6 +22,8 @@ class Main:
   logger = None
 
   def __init__(self):
+    reload(sys)
+    sys.setdefaultencoding('utf8') # this is needed for the write to work with utf8
     self.logger = self.setup_log()
     self.tc = TopChans()
     self.main()

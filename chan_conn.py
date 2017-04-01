@@ -11,8 +11,6 @@ import threading
 import time
 import S3_handle as S3
 import logging
-reload(sys)
-sys.setdefaultencoding('utf8') # this is needed for the write to work with utf8
 """
     Script for handling a channels
     Given a list of channels this script spawns a new thread
@@ -30,8 +28,9 @@ class ChanConn(threading.Thread):
   logger = logging.getLogger('main_log')
   # Initialize the connection.
   def __init__(self, chan):
+    reload(sys)
+    sys.setdefaultencoding('utf8') # this is needed for the write to work with utf8
     threading.Thread.__init__(self) # call superclass
-
     # Set default values
     self.connected = False
     self.socket = None
