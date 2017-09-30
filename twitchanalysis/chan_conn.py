@@ -5,11 +5,12 @@ import datetime
 import sys
 import os
 import codecs
-import credentials as cred
 import json
+import credentials
 import threading
 import time
 import S3_handle as S3
+import yaml
 import logging
 """
     Script for handling a channels
@@ -19,19 +20,20 @@ import logging
 class ChanConn(threading.Thread):
 
   # Variable definitions
-  NICK = cred.T_NICK
-  PASS = cred.T_PASS
+  creds = credentials.Credentials().creds
+  NICK = creds['T_NICK']
+  PASS = creds['T_PASS']
   HOST="irc.twitch.tv"
   PORT=6667
   output_path = "data/"
   nickname = "brohunt"
-  logger = logging.getLogger('main_log')
   # Initialize the connection.
   def __init__(self, chan):
     reload(sys)
     sys.setdefaultencoding('utf8') # this is needed for the write to work with utf8
     threading.Thread.__init__(self) # call superclass
     # Set default values
+    self.logger = logging.getLogger('main_log')
     self.connected = False
     self.socket = None
     self.file_raw = None
@@ -178,9 +180,9 @@ class ChanConn(threading.Thread):
     self.socket.close()
     self.file_raw.close()
     self.file_filtered.close()
-    S3.upload_file(self.file_path)
-    os.remove(self.file_path)
-    os.remove(self.file_path+"_raw")
+#    S3.upload_file(self.file_path)
+#    os.remove(self.file_path)
+#    os.remove(self.file_path+"_raw")
 
 
 # Example start  call

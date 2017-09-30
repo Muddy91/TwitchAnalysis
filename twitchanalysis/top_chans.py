@@ -11,13 +11,15 @@ class TopChans:
   max_retries = 10
   wait_retry_sec = 5
   url = "https://api.twitch.tv/kraken/streams"
+  creds = creds.Credentials().creds
   # Return current top channels in JSON format, number of channels is num
   def top_channels(self, num):
     num_retries = 0
     while num_retries < self.max_retries:
       try:
+        print self.creds
         curr_url = self.url + "?limit=" + str(num) + "&stream_type=live"
-        request = urllib2.Request(curr_url, headers={"Client-ID": creds.T_CLIENTID})
+        request = urllib2.Request(curr_url, headers={"Client-ID": self.creds['T_CLIENTID']})
         req = urllib2.urlopen(request)
         data = req.read()
         res = self.data_to_json(data)
@@ -26,8 +28,8 @@ class TopChans:
         print e
         num_retries = num_retries + 1
         if num_retries < self.max_retries:
-          print "Will retry in %d seconds", wait_retry_sec
-          sleep(wait_retry_sec)
+          print "Will retry in %d seconds", self.wait_retry_sec
+          sleep(self.wait_retry_sec)
         else:
           print "Final retry, won't retry again"
 

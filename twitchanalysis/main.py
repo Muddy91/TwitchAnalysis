@@ -50,6 +50,7 @@ class Main:
         t.stop()
       self.channel_threads.pop(c, None)
       self.current_channels.remove(c)
+    #self.handle_removed_channels_files(chans)
 
   def add_channels(self, chans):
     for c in chans:
@@ -62,8 +63,8 @@ class Main:
   def setup_log(self):
     logger = logging.getLogger('main_log')
     logger.setLevel(logging.DEBUG)
-    dh = logging.FileHandler('log/debug.log', mode='w')
-    eh = logging.FileHandler('log/error.log', mode='w')
+    dh = logging.FileHandler('twitchanalysis/log/debug.log', mode='w')
+    eh = logging.FileHandler('twitchanalysis/log/error.log', mode='w')
     formatter = logging.Formatter('%(asctime)s %(message)s')
     dh.setFormatter(formatter)
     eh.setFormatter(formatter)

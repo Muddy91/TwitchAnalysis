@@ -1,6 +1,6 @@
 *.txt
 *.pyc
-credentials.py
+twitchanalysis/config/*
 data/
 startupscript.sh
 log/*
