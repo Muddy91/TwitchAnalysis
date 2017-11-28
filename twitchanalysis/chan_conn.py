@@ -12,6 +12,7 @@ import time
 import S3_handle as S3
 import yaml
 import logging
+from database import Database
 """
     Script for handling a channels
     Given a list of channels this script spawns a new thread
@@ -40,6 +41,7 @@ class ChanConn(threading.Thread):
     self.file_filtered = None
     self.active = True
     self.chan = chan
+    self.database = Database()
 
     # Setup output files
     self.file_path = self.output_path + str(chan)
@@ -97,6 +99,9 @@ class ChanConn(threading.Thread):
           msg = timestamp + data + "\n"
           self.file_raw.write(msg)
           parsed = self.parse_json(data, timestamp)
+          print parsed
+          self.database.insert(parsed)
+          print parsed
         except UnicodeDecodeError:
             logging.error("Could not write raw message: [ %s ], to file.", msg)
         if parsed != None:
@@ -167,9 +172,9 @@ class ChanConn(threading.Thread):
     or msg_start_index == -1:
         return None
 
-    json_dict = {'nick': nickname,
-            'chan': chan,
-            'msg': msg,
+    json_dict = {'nickname': nickname,
+            'channel': chan,
+            'message': msg,
             'time': time
             }
     return json_dict
