@@ -8,8 +8,5 @@ class Database:
 	def insert(self, document):
 		if document == None:
 			return None
-		print type(document)
-		print document
 		id = self.collection.insert_one(dict(document)).inserted_id
-		print id
 		return id
